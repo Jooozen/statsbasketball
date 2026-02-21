@@ -1,0 +1,942 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+:root {
+  --color-bg: #0f1923;
+  --color-surface: #1a2733;
+  --color-surface-hover: #243442;
+  --color-primary: #ff6b35;
+  --color-primary-hover: #ff8555;
+  --color-success: #22c55e;
+  --color-success-bg: #162b1f;
+  --color-danger: #ef4444;
+  --color-danger-bg: #2b1616;
+  --color-warning: #f59e0b;
+  --color-warning-bg: #2b2210;
+  --color-text: #e8edf2;
+  --color-text-secondary: #8899aa;
+  --color-border: #2a3a4a;
+  --color-selected: #ff6b35;
+  --radius: 10px;
+  --header-height: 60px;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+/* ===== Buttons ===== */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 12px 20px;
+  transition: background 0.15s, transform 0.1s;
+  color: var(--color-text);
+  background: var(--color-surface);
+  white-space: nowrap;
+  touch-action: manipulation;
+}
+
+.btn:active {
+  transform: scale(0.95);
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: white;
+}
+.btn-primary:active {
+  background: var(--color-primary-hover);
+}
+
+.btn-secondary {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.btn-back {
+  background: transparent;
+  padding: 12px 16px;
+  font-size: 16px;
+}
+
+.btn-large {
+  padding: 18px 32px;
+  font-size: 18px;
+  min-height: 60px;
+}
+
+.btn-small {
+  padding: 8px 14px;
+  font-size: 14px;
+}
+
+.btn-form-action {
+  padding: 14px 24px;
+  align-self: flex-end;
+}
+
+.btn-edit {
+  background: var(--color-surface-hover);
+}
+
+.btn-delete {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+/* ===== Pages ===== */
+
+.page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 20px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  min-height: var(--header-height);
+  flex-shrink: 0;
+}
+
+.header h1 {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.header-count {
+  margin-left: auto;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+}
+
+/* ===== Home Page ===== */
+
+.home-page {
+  overflow-y: auto;
+}
+
+.home-actions {
+  display: flex;
+  gap: 16px;
+  padding: 24px 20px;
+  justify-content: center;
+}
+
+.game-section {
+  padding: 0 20px 20px;
+}
+
+.game-section h2 {
+  font-size: 16px;
+  color: var(--color-text-secondary);
+  margin-bottom: 10px;
+  padding-left: 4px;
+}
+
+.game-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.game-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: background 0.15s;
+  border: 1px solid var(--color-border);
+}
+.game-card:active {
+  background: var(--color-surface-hover);
+}
+
+.game-card-active {
+  border-color: var(--color-primary);
+}
+
+.game-card-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.game-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.game-date {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  min-width: 100px;
+}
+
+.game-opponent {
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.game-quarter {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.game-score {
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.game-card-arrow {
+  color: var(--color-text-secondary);
+}
+
+/* ===== Modal ===== */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal {
+  background: var(--color-surface);
+  border-radius: 16px;
+  padding: 28px;
+  min-width: 400px;
+  max-width: 90%;
+  border: 1px solid var(--color-border);
+}
+
+.modal h2 {
+  font-size: 20px;
+  margin-bottom: 20px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+/* ===== Form ===== */
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.form-group-grow {
+  flex: 1;
+}
+
+.form-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+input[type="text"],
+input[type="number"] {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text);
+  font-size: 18px;
+  padding: 12px 16px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+input:focus {
+  border-color: var(--color-primary);
+}
+
+.input-large {
+  font-size: 18px;
+  padding: 14px 16px;
+}
+
+.input-number {
+  width: 100px;
+}
+
+/* ===== Team Manager ===== */
+
+.team-form {
+  padding: 20px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.player-list {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.player-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  padding: 14px 20px;
+  border: 1px solid var(--color-border);
+}
+
+.player-card.editing {
+  border-color: var(--color-primary);
+}
+
+.player-number {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--color-primary);
+  min-width: 60px;
+}
+
+.player-name {
+  font-size: 18px;
+  font-weight: 600;
+  flex: 1;
+}
+
+.player-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ===== Game Recorder ===== */
+
+.recorder-page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.recorder-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  min-height: var(--header-height);
+  flex-shrink: 0;
+}
+
+.recorder-opponent {
+  font-size: 18px;
+  font-weight: 700;
+  min-width: 100px;
+}
+
+.quarter-selector {
+  display: flex;
+  gap: 4px;
+}
+
+.btn-quarter {
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+}
+.btn-quarter.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+}
+
+.scoreboard {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.score-team {
+  color: var(--color-primary);
+}
+
+.score-divider {
+  color: var(--color-text-secondary);
+}
+
+.score-opponent {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-score-adj {
+  padding: 4px 10px;
+  font-size: 18px;
+  background: var(--color-surface-hover);
+  border: 1px solid var(--color-border);
+}
+
+.btn-finish {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger);
+  margin-left: 8px;
+  padding: 8px 16px;
+  font-size: 14px;
+}
+
+/* Recorder Body */
+
+.recorder-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.player-sidebar {
+  width: 200px;
+  min-width: 200px;
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px;
+}
+
+.player-select-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px 12px;
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--color-text);
+  text-align: left;
+  transition: all 0.15s;
+  font-size: 15px;
+  touch-action: manipulation;
+}
+
+.player-select-btn:active {
+  background: var(--color-surface-hover);
+}
+.player-select-btn.selected {
+  background: var(--color-bg);
+  border-color: var(--color-selected);
+}
+
+.player-select-number {
+  font-weight: 800;
+  color: var(--color-primary);
+  min-width: 36px;
+  font-size: 16px;
+}
+
+.player-select-name {
+  flex: 1;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.player-select-pts {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  font-weight: 700;
+}
+
+/* Stat Panel */
+
+.stat-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 24px;
+  overflow-y: auto;
+}
+
+.selected-player-info {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: var(--color-primary);
+}
+
+.stat-buttons {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.stat-group h3 {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.stat-button-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.shooting-grid {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.other-grid {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.btn-stat {
+  min-width: 80px;
+  min-height: 64px;
+  font-size: 18px;
+  font-weight: 800;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  touch-action: manipulation;
+}
+
+.btn-stat-success {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  border-color: var(--color-success);
+}
+.btn-stat-success:active {
+  background: var(--color-success);
+  color: white;
+}
+
+.btn-stat-fail {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+.btn-stat-fail:active {
+  background: var(--color-danger);
+  color: white;
+}
+
+.btn-stat-neutral {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+.btn-stat-neutral:active {
+  background: var(--color-surface-hover);
+}
+
+.btn-stat-warning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  border-color: var(--color-warning);
+}
+.btn-stat-warning:active {
+  background: var(--color-warning);
+  color: white;
+}
+
+/* Current Stats */
+
+.current-stats {
+  margin-top: 20px;
+  padding: 16px;
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+}
+
+.stat-line {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 15px;
+  line-height: 2;
+}
+
+.stat-item {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.stat-label {
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.stat-value {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+/* Undo */
+
+.undo-section {
+  margin-top: 16px;
+}
+
+.btn-undo {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  padding: 12px 20px;
+  font-size: 15px;
+}
+.btn-undo:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.undo-detail {
+  font-weight: 400;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  margin-left: 4px;
+}
+
+/* No player selected */
+
+.no-player-selected {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 20px;
+  color: var(--color-text-secondary);
+}
+
+/* ===== Game Summary / Box Score ===== */
+
+.summary-page {
+  overflow-y: auto;
+}
+
+.summary-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px;
+  gap: 12px;
+}
+
+.summary-date {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+.summary-score-display {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  font-size: 24px;
+}
+
+.summary-team-name {
+  font-weight: 600;
+  min-width: 120px;
+  text-align: center;
+}
+
+.summary-score-number {
+  font-size: 48px;
+  font-weight: 900;
+  color: var(--color-primary);
+}
+
+.summary-score-divider {
+  font-size: 32px;
+  color: var(--color-text-secondary);
+}
+
+.summary-result {
+  font-size: 20px;
+  font-weight: 800;
+  padding: 6px 24px;
+  border-radius: 20px;
+}
+
+.summary-result.win {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.summary-result.lose {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.summary-result.draw {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+/* Box Score Table */
+
+.box-score-container {
+  padding: 0 20px 20px;
+  overflow-x: auto;
+}
+
+.box-score {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.box-score th {
+  background: var(--color-surface);
+  padding: 10px 8px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  border-bottom: 2px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.box-score td {
+  padding: 10px 8px;
+  text-align: center;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.box-score .col-player {
+  text-align: left;
+  font-weight: 600;
+  min-width: 140px;
+  position: sticky;
+  left: 0;
+  background: var(--color-bg);
+  z-index: 1;
+}
+
+.box-score th.col-player {
+  background: var(--color-surface);
+}
+
+.box-score .col-pts {
+  color: var(--color-primary);
+  font-size: 16px;
+}
+
+.box-score .totals-row td {
+  border-top: 2px solid var(--color-primary);
+  font-weight: 700;
+  background: var(--color-surface);
+}
+
+.box-score .totals-row .col-player {
+  background: var(--color-surface);
+}
+
+/* ===== Empty State ===== */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: var(--color-text-secondary);
+  text-align: center;
+  gap: 8px;
+  font-size: 16px;
+}
+
+.empty-state-icon {
+  font-size: 48px;
+  margin-bottom: 8px;
+}
+
+/* ===== iPad Responsive ===== */
+
+/* Standard iPad (768px - 1024px) */
+@media (min-width: 768px) {
+  .btn-stat {
+    min-height: 72px;
+    font-size: 20px;
+    min-width: 100px;
+  }
+
+  .player-sidebar {
+    width: 220px;
+    min-width: 220px;
+  }
+
+  .player-select-btn {
+    padding: 16px 14px;
+  }
+
+  .other-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* iPad Pro and larger */
+@media (min-width: 1024px) {
+  .stat-buttons {
+    gap: 32px;
+  }
+
+  .stat-button-grid {
+    gap: 10px;
+  }
+
+  .btn-stat {
+    min-width: 110px;
+    min-height: 76px;
+    font-size: 22px;
+  }
+
+  .player-sidebar {
+    width: 240px;
+    min-width: 240px;
+  }
+}
+
+/* Landscape mode optimization */
+@media (orientation: landscape) and (max-height: 850px) {
+  .recorder-header {
+    padding: 4px 16px;
+    min-height: 48px;
+  }
+
+  .stat-panel {
+    padding: 10px 20px;
+  }
+
+  .selected-player-info {
+    margin-bottom: 10px;
+    font-size: 18px;
+  }
+
+  .btn-stat {
+    min-height: 56px;
+  }
+
+  .current-stats {
+    margin-top: 12px;
+    padding: 10px 14px;
+  }
+
+  .stat-line {
+    line-height: 1.8;
+  }
+
+  .undo-section {
+    margin-top: 10px;
+  }
+
+  .stat-group h3 {
+    margin-bottom: 6px;
+  }
+}
+
+/* Very compact landscape (e.g. iPad mini) */
+@media (orientation: landscape) and (max-height: 700px) {
+  .recorder-header {
+    padding: 2px 12px;
+    min-height: 40px;
+    gap: 8px;
+  }
+
+  .recorder-opponent {
+    font-size: 16px;
+  }
+
+  .scoreboard {
+    font-size: 22px;
+  }
+
+  .stat-panel {
+    padding: 6px 16px;
+  }
+
+  .selected-player-info {
+    margin-bottom: 6px;
+    font-size: 16px;
+  }
+
+  .btn-stat {
+    min-height: 48px;
+    font-size: 16px;
+  }
+
+  .stat-buttons {
+    gap: 16px;
+  }
+
+  .current-stats {
+    margin-top: 8px;
+    padding: 8px 12px;
+  }
+
+  .stat-line {
+    font-size: 13px;
+    gap: 12px;
+  }
+
+  .player-select-btn {
+    padding: 10px 10px;
+  }
+}
