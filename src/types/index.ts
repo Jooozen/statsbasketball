@@ -1,40 +1,116 @@
-// 選手情報
+// ============================================================
+// ポジション
+// ============================================================
+export type Position = 'PG' | 'SG' | 'SF' | 'PF' | 'C';
+
+export const POSITION_LABELS: Record<Position, string> = {
+  PG: 'ポイントガード',
+  SG: 'シューティングガード',
+  SF: 'スモールフォワード',
+  PF: 'パワーフォワード',
+  C: 'センター',
+};
+
+// ============================================================
+// Player（選手）
+// ============================================================
 export interface Player {
   id: string;
   name: string;
-  number: string; // 背番号
+  number: string;        // 背番号
+  position: Position;
 }
 
-// スタッツの種類
-export type StatType =
-  | 'FGM'   // フィールドゴール成功
-  | 'FGA'   // フィールドゴール試投
+// ============================================================
+// Team（チーム）
+// ============================================================
+export interface Team {
+  id: string;
+  name: string;
+  players: Player[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+// ============================================================
+// ActionType（アクション種別）
+// ============================================================
+export type ActionType =
+  // シュート
+  | '2PM'   // 2ポイント成功
+  | '2PA'   // 2ポイント失敗
   | '3PM'   // 3ポイント成功
-  | '3PA'   // 3ポイント試投
+  | '3PA'   // 3ポイント失敗
   | 'FTM'   // フリースロー成功
-  | 'FTA'   // フリースロー試投
+  | 'FTA'   // フリースロー失敗
+  // リバウンド
   | 'OREB'  // オフェンスリバウンド
   | 'DREB'  // ディフェンスリバウンド
+  // その他
   | 'AST'   // アシスト
   | 'STL'   // スティール
   | 'BLK'   // ブロック
   | 'TO'    // ターンオーバー
   | 'PF';   // ファウル
 
-// 個々のスタッツ記録
-export interface StatEntry {
+export const ACTION_LABELS: Record<ActionType, string> = {
+  '2PM': '2P成功',
+  '2PA': '2P失敗',
+  '3PM': '3P成功',
+  '3PA': '3P失敗',
+  FTM:   'FT成功',
+  FTA:   'FT失敗',
+  OREB:  'オフェンスリバウンド',
+  DREB:  'ディフェンスリバウンド',
+  AST:   'アシスト',
+  STL:   'スティール',
+  BLK:   'ブロック',
+  TO:    'ターンオーバー',
+  PF:    'ファウル',
+};
+
+// カテゴリ分け（UI で使用）
+export const ACTION_CATEGORIES = {
+  shooting: ['2PM', '2PA', '3PM', '3PA', 'FTM', 'FTA'] as ActionType[],
+  rebound:  ['OREB', 'DREB'] as ActionType[],
+  other:    ['AST', 'STL', 'BLK', 'TO', 'PF'] as ActionType[],
+};
+
+// ============================================================
+// Play（1つ1つの記録）
+// ============================================================
+export interface Play {
   id: string;
   playerId: string;
-  statType: StatType;
+  actionType: ActionType;
   quarter: number;
-  timestamp: number;
+  timestamp: number;      // 記録した時刻 (Date.now())
 }
 
-// 選手ごとの集計スタッツ
-export interface PlayerStats {
+// ============================================================
+// Game（試合）
+// ============================================================
+export interface Game {
+  id: string;
+  teamId: string;
+  opponent: string;
+  date: string;           // "YYYY-MM-DD"
+  quarterCount: number;   // クォーター数（デフォルト4）
+  currentQuarter: number;
+  timeoutsLeft: number;   // タイムアウト残数
+  plays: Play[];
+  isFinished: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
+// ============================================================
+// PlayerGameStats（選手ごとの集計 — 計算用ヘルパー型）
+// ============================================================
+export interface PlayerGameStats {
   playerId: string;
-  FGM: number;
-  FGA: number;
+  '2PM': number;
+  '2PA': number;
   '3PM': number;
   '3PA': number;
   FTM: number;
@@ -46,21 +122,10 @@ export interface PlayerStats {
   BLK: number;
   TO: number;
   PF: number;
-  PTS: number;  // 得点（計算値）
-  REB: number;  // 総リバウンド（計算値）
-}
-
-// 試合情報
-export interface Game {
-  id: string;
-  date: string;
-  opponent: string;
-  teamName: string;
-  players: Player[];
-  statEntries: StatEntry[];
-  quarters: number;       // クォーター数（デフォルト4）
-  currentQuarter: number;
-  isFinished: boolean;
-  createdAt: number;
-  updatedAt: number;
+  // 計算値
+  PTS: number;   // 得点 = 2PM*2 + 3PM*3 + FTM
+  REB: number;   // 総リバウンド = OREB + DREB
+  FGP: number;   // FG% = (2PM+3PM) / (2PA+3PA)  ※ 0 除算時は 0
+  TPP: number;   // 3P% = 3PM / 3PA
+  FTP: number;   // FT% = FTM / FTA
 }

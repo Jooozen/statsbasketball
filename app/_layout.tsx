@@ -2,13 +2,16 @@ import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useGameStore } from '../src/stores/gameStore';
+import { useTeamStore } from '../src/stores/teamStore';
 import { Colors } from '../src/constants/theme';
 
 export default function RootLayout() {
   const loadGames = useGameStore((state) => state.loadGames);
+  const loadTeams = useTeamStore((state) => state.loadTeams);
 
   useEffect(() => {
     loadGames();
+    loadTeams();
   }, []);
 
   return (

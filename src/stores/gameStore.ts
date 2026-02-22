@@ -1,35 +1,87 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Game, Player, StatEntry, StatType } from '../types';
+import { Game, Play, ActionType, PlayerGameStats } from '../types';
 
 const GAMES_STORAGE_KEY = 'basketball_stats_games';
+const DEFAULT_TIMEOUTS = 3;
 
+function generateId(): string {
+  return Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
+}
+
+// ============================================================
+// 集計ヘルパー
+// ============================================================
+export function calcPlayerStats(plays: Play[], playerId: string): PlayerGameStats {
+  const filtered = plays.filter((p) => p.playerId === playerId);
+
+  const count = (type: ActionType) => filtered.filter((p) => p.actionType === type).length;
+
+  const _2PM = count('2PM');
+  const _2PA = count('2PA');
+  const _3PM = count('3PM');
+  const _3PA = count('3PA');
+  const FTM  = count('FTM');
+  const FTA  = count('FTA');
+  const OREB = count('OREB');
+  const DREB = count('DREB');
+
+  const fgMade = _2PM + _3PM;
+  const fgAtt  = _2PA + _3PA;
+
+  return {
+    playerId,
+    '2PM': _2PM,
+    '2PA': _2PA,
+    '3PM': _3PM,
+    '3PA': _3PA,
+    FTM,
+    FTA,
+    OREB,
+    DREB,
+    AST: count('AST'),
+    STL: count('STL'),
+    BLK: count('BLK'),
+    TO:  count('TO'),
+    PF:  count('PF'),
+    PTS: _2PM * 2 + _3PM * 3 + FTM,
+    REB: OREB + DREB,
+    FGP: fgAtt > 0 ? fgMade / fgAtt : 0,
+    TPP: _3PA > 0 ? _3PM / _3PA : 0,
+    FTP: FTA > 0 ? FTM / FTA : 0,
+  };
+}
+
+// ============================================================
+// Store
+// ============================================================
 interface GameState {
-  // 保存済み試合一覧
   games: Game[];
-  // 現在記録中の試合
   currentGame: Game | null;
-  // ロード状態
   isLoading: boolean;
 
-  // 試合一覧の操作
+  // ストレージ
   loadGames: () => Promise<void>;
   saveGames: () => Promise<void>;
 
-  // 試合の作成・管理
-  createGame: (teamName: string, opponent: string, players: Player[], quarters?: number) => void;
+  // 試合ライフサイクル
+  createGame: (params: {
+    teamId: string;
+    opponent: string;
+    quarterCount?: number;
+    timeoutsLeft?: number;
+  }) => void;
   finishGame: () => Promise<void>;
   resumeGame: (gameId: string) => void;
   deleteGame: (gameId: string) => Promise<void>;
 
-  // スタッツ記録
-  addStat: (playerId: string, statType: StatType) => void;
-  undoLastStat: () => void;
+  // クォーター・タイムアウト操作
   setQuarter: (quarter: number) => void;
-}
+  useTimeout: () => void;
 
-function generateId(): string {
-  return Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
+  // プレイ記録
+  addPlay: (playerId: string, actionType: ActionType) => void;
+  undoLastPlay: () => void;
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -37,14 +89,13 @@ export const useGameStore = create<GameState>((set, get) => ({
   currentGame: null,
   isLoading: true,
 
+  // ──────────────────────────────────────────────
+  // ストレージ
+  // ──────────────────────────────────────────────
   loadGames: async () => {
     try {
       const data = await AsyncStorage.getItem(GAMES_STORAGE_KEY);
-      if (data) {
-        set({ games: JSON.parse(data), isLoading: false });
-      } else {
-        set({ isLoading: false });
-      }
+      set({ games: data ? JSON.parse(data) : [], isLoading: false });
     } catch (error) {
       console.error('Failed to load games:', error);
       set({ isLoading: false });
@@ -53,26 +104,29 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   saveGames: async () => {
     try {
-      const { games } = get();
-      await AsyncStorage.setItem(GAMES_STORAGE_KEY, JSON.stringify(games));
+      await AsyncStorage.setItem(GAMES_STORAGE_KEY, JSON.stringify(get().games));
     } catch (error) {
       console.error('Failed to save games:', error);
     }
   },
 
-  createGame: (teamName, opponent, players, quarters = 4) => {
+  // ──────────────────────────────────────────────
+  // 試合ライフサイクル
+  // ──────────────────────────────────────────────
+  createGame: ({ teamId, opponent, quarterCount = 4, timeoutsLeft = DEFAULT_TIMEOUTS }) => {
+    const now = Date.now();
     const newGame: Game = {
       id: generateId(),
-      date: new Date().toISOString().split('T')[0],
-      teamName,
+      teamId,
       opponent,
-      players,
-      statEntries: [],
-      quarters,
+      date: new Date().toISOString().split('T')[0],
+      quarterCount,
       currentQuarter: 1,
+      timeoutsLeft,
+      plays: [],
       isFinished: false,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      createdAt: now,
+      updatedAt: now,
     };
     set({ currentGame: newGame });
   },
@@ -81,39 +135,61 @@ export const useGameStore = create<GameState>((set, get) => ({
     const { currentGame, games } = get();
     if (!currentGame) return;
 
-    const finishedGame = { ...currentGame, isFinished: true, updatedAt: Date.now() };
-    const existingIndex = games.findIndex((g) => g.id === finishedGame.id);
+    const finished: Game = { ...currentGame, isFinished: true, updatedAt: Date.now() };
+    const idx = games.findIndex((g) => g.id === finished.id);
     const updatedGames =
-      existingIndex >= 0
-        ? games.map((g, i) => (i === existingIndex ? finishedGame : g))
-        : [finishedGame, ...games];
+      idx >= 0
+        ? games.map((g, i) => (i === idx ? finished : g))
+        : [finished, ...games];
 
     set({ games: updatedGames, currentGame: null });
     await get().saveGames();
   },
 
   resumeGame: (gameId) => {
-    const { games } = get();
-    const game = games.find((g) => g.id === gameId);
+    const game = get().games.find((g) => g.id === gameId);
     if (game && !game.isFinished) {
       set({ currentGame: game });
     }
   },
 
   deleteGame: async (gameId) => {
-    const { games } = get();
-    set({ games: games.filter((g) => g.id !== gameId) });
+    set((state) => ({ games: state.games.filter((g) => g.id !== gameId) }));
     await get().saveGames();
   },
 
-  addStat: (playerId, statType) => {
+  // ──────────────────────────────────────────────
+  // クォーター・タイムアウト
+  // ──────────────────────────────────────────────
+  setQuarter: (quarter) => {
+    const { currentGame } = get();
+    if (!currentGame) return;
+    set({ currentGame: { ...currentGame, currentQuarter: quarter, updatedAt: Date.now() } });
+  },
+
+  useTimeout: () => {
+    const { currentGame } = get();
+    if (!currentGame || currentGame.timeoutsLeft <= 0) return;
+    set({
+      currentGame: {
+        ...currentGame,
+        timeoutsLeft: currentGame.timeoutsLeft - 1,
+        updatedAt: Date.now(),
+      },
+    });
+  },
+
+  // ──────────────────────────────────────────────
+  // プレイ記録
+  // ──────────────────────────────────────────────
+  addPlay: (playerId, actionType) => {
     const { currentGame } = get();
     if (!currentGame) return;
 
-    const entry: StatEntry = {
+    const play: Play = {
       id: generateId(),
       playerId,
-      statType,
+      actionType,
       quarter: currentGame.currentQuarter,
       timestamp: Date.now(),
     };
@@ -121,33 +197,19 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({
       currentGame: {
         ...currentGame,
-        statEntries: [...currentGame.statEntries, entry],
+        plays: [...currentGame.plays, play],
         updatedAt: Date.now(),
       },
     });
   },
 
-  undoLastStat: () => {
+  undoLastPlay: () => {
     const { currentGame } = get();
-    if (!currentGame || currentGame.statEntries.length === 0) return;
-
+    if (!currentGame || currentGame.plays.length === 0) return;
     set({
       currentGame: {
         ...currentGame,
-        statEntries: currentGame.statEntries.slice(0, -1),
-        updatedAt: Date.now(),
-      },
-    });
-  },
-
-  setQuarter: (quarter) => {
-    const { currentGame } = get();
-    if (!currentGame) return;
-
-    set({
-      currentGame: {
-        ...currentGame,
-        currentQuarter: quarter,
+        plays: currentGame.plays.slice(0, -1),
         updatedAt: Date.now(),
       },
     });
