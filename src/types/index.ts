@@ -60,8 +60,8 @@ export const ACTION_LABELS: Record<ActionType, string> = {
   '3PA': '3P失敗',
   FTM:   'FT成功',
   FTA:   'FT失敗',
-  OREB:  'オフェンスリバウンド',
-  DREB:  'ディフェンスリバウンド',
+  OREB:  'OFリバウンド',
+  DREB:  'DFリバウンド',
   AST:   'アシスト',
   STL:   'スティール',
   BLK:   'ブロック',
@@ -84,7 +84,8 @@ export interface Play {
   playerId: string;
   actionType: ActionType;
   quarter: number;
-  timestamp: number;      // 記録した時刻 (Date.now())
+  gameClockSeconds: number;   // その時点の試合時計（秒）
+  timestamp: number;          // 記録した実時刻 (Date.now())
 }
 
 // ============================================================
@@ -93,11 +94,16 @@ export interface Play {
 export interface Game {
   id: string;
   teamId: string;
+  teamName: string;
   opponent: string;
-  date: string;           // "YYYY-MM-DD"
-  quarterCount: number;   // クォーター数（デフォルト4）
+  homePlayers: Player[];          // 自チーム出場選手
+  opponentPlayers: Player[];      // 相手チーム出場選手
+  date: string;                   // "YYYY-MM-DD"
+  quarterCount: number;           // クォーター数（デフォルト4）
   currentQuarter: number;
-  timeoutsLeft: number;   // タイムアウト残数
+  gameClockSeconds: number;       // 残り時間（秒） デフォルト600=10分
+  homeTimeoutsLeft: number;       // 自チームタイムアウト残数
+  opponentTimeoutsLeft: number;   // 相手チームタイムアウト残数
   plays: Play[];
   isFinished: boolean;
   createdAt: number;

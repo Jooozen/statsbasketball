@@ -29,6 +29,10 @@ export default function RootLayout() {
           name="index"
           options={{ title: 'Basketball Stats' }}
         />
+        <Stack.Screen
+          name="game"
+          options={{ headerShown: false }}
+        />
       </Stack>
     </>
   );

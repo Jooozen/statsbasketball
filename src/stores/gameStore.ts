@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Game, Play, ActionType, PlayerGameStats } from '../types';
+import { Game, Play, Player, ActionType, PlayerGameStats } from '../types';
 
 const GAMES_STORAGE_KEY = 'basketball_stats_games';
+const DEFAULT_QUARTER_SECONDS = 600; // 10分
 const DEFAULT_TIMEOUTS = 3;
 
 function generateId(): string {
@@ -14,7 +15,6 @@ function generateId(): string {
 // ============================================================
 export function calcPlayerStats(plays: Play[], playerId: string): PlayerGameStats {
   const filtered = plays.filter((p) => p.playerId === playerId);
-
   const count = (type: ActionType) => filtered.filter((p) => p.actionType === type).length;
 
   const _2PM = count('2PM');
@@ -31,14 +31,9 @@ export function calcPlayerStats(plays: Play[], playerId: string): PlayerGameStat
 
   return {
     playerId,
-    '2PM': _2PM,
-    '2PA': _2PA,
-    '3PM': _3PM,
-    '3PA': _3PA,
-    FTM,
-    FTA,
-    OREB,
-    DREB,
+    '2PM': _2PM, '2PA': _2PA,
+    '3PM': _3PM, '3PA': _3PA,
+    FTM, FTA, OREB, DREB,
     AST: count('AST'),
     STL: count('STL'),
     BLK: count('BLK'),
@@ -47,9 +42,22 @@ export function calcPlayerStats(plays: Play[], playerId: string): PlayerGameStat
     PTS: _2PM * 2 + _3PM * 3 + FTM,
     REB: OREB + DREB,
     FGP: fgAtt > 0 ? fgMade / fgAtt : 0,
-    TPP: _3PA > 0 ? _3PM / _3PA : 0,
-    FTP: FTA > 0 ? FTM / FTA : 0,
+    TPP: _3PA  > 0 ? _3PM / _3PA : 0,
+    FTP: FTA   > 0 ? FTM  / FTA  : 0,
   };
+}
+
+/** チーム合計スコアを算出 */
+export function calcTeamScore(plays: Play[], playerIds: string[]): number {
+  const idSet = new Set(playerIds);
+  return plays
+    .filter((p) => idSet.has(p.playerId))
+    .reduce((sum, p) => {
+      if (p.actionType === '2PM') return sum + 2;
+      if (p.actionType === '3PM') return sum + 3;
+      if (p.actionType === 'FTM') return sum + 1;
+      return sum;
+    }, 0);
 }
 
 // ============================================================
@@ -60,26 +68,30 @@ interface GameState {
   currentGame: Game | null;
   isLoading: boolean;
 
-  // ストレージ
   loadGames: () => Promise<void>;
   saveGames: () => Promise<void>;
 
-  // 試合ライフサイクル
   createGame: (params: {
     teamId: string;
+    teamName: string;
     opponent: string;
+    homePlayers: Player[];
+    opponentPlayers: Player[];
     quarterCount?: number;
-    timeoutsLeft?: number;
+    quarterSeconds?: number;
+    timeouts?: number;
   }) => void;
   finishGame: () => Promise<void>;
   resumeGame: (gameId: string) => void;
   deleteGame: (gameId: string) => Promise<void>;
+  saveCurrentGame: () => Promise<void>;
 
-  // クォーター・タイムアウト操作
   setQuarter: (quarter: number) => void;
-  useTimeout: () => void;
+  setGameClock: (seconds: number) => void;
+  adjustGameClock: (delta: number) => void;
+  useHomeTimeout: () => void;
+  useOpponentTimeout: () => void;
 
-  // プレイ記録
   addPlay: (playerId: string, actionType: ActionType) => void;
   undoLastPlay: () => void;
 }
@@ -89,9 +101,6 @@ export const useGameStore = create<GameState>((set, get) => ({
   currentGame: null,
   isLoading: true,
 
-  // ──────────────────────────────────────────────
-  // ストレージ
-  // ──────────────────────────────────────────────
   loadGames: async () => {
     try {
       const data = await AsyncStorage.getItem(GAMES_STORAGE_KEY);
@@ -110,19 +119,24 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
   },
 
-  // ──────────────────────────────────────────────
-  // 試合ライフサイクル
-  // ──────────────────────────────────────────────
-  createGame: ({ teamId, opponent, quarterCount = 4, timeoutsLeft = DEFAULT_TIMEOUTS }) => {
+  createGame: ({
+    teamId, teamName, opponent, homePlayers, opponentPlayers,
+    quarterCount = 4, quarterSeconds = DEFAULT_QUARTER_SECONDS, timeouts = DEFAULT_TIMEOUTS,
+  }) => {
     const now = Date.now();
     const newGame: Game = {
       id: generateId(),
       teamId,
+      teamName,
       opponent,
+      homePlayers,
+      opponentPlayers,
       date: new Date().toISOString().split('T')[0],
       quarterCount,
       currentQuarter: 1,
-      timeoutsLeft,
+      gameClockSeconds: quarterSeconds,
+      homeTimeoutsLeft: timeouts,
+      opponentTimeoutsLeft: timeouts,
       plays: [],
       isFinished: false,
       createdAt: now,
@@ -158,30 +172,62 @@ export const useGameStore = create<GameState>((set, get) => ({
     await get().saveGames();
   },
 
-  // ──────────────────────────────────────────────
-  // クォーター・タイムアウト
-  // ──────────────────────────────────────────────
+  saveCurrentGame: async () => {
+    const { currentGame, games } = get();
+    if (!currentGame) return;
+    const idx = games.findIndex((g) => g.id === currentGame.id);
+    const updated = { ...currentGame, updatedAt: Date.now() };
+    const updatedGames =
+      idx >= 0
+        ? games.map((g, i) => (i === idx ? updated : g))
+        : [updated, ...games];
+    set({ games: updatedGames });
+    await get().saveGames();
+  },
+
   setQuarter: (quarter) => {
     const { currentGame } = get();
     if (!currentGame) return;
     set({ currentGame: { ...currentGame, currentQuarter: quarter, updatedAt: Date.now() } });
   },
 
-  useTimeout: () => {
+  setGameClock: (seconds) => {
     const { currentGame } = get();
-    if (!currentGame || currentGame.timeoutsLeft <= 0) return;
+    if (!currentGame) return;
+    set({ currentGame: { ...currentGame, gameClockSeconds: Math.max(0, seconds), updatedAt: Date.now() } });
+  },
+
+  adjustGameClock: (delta) => {
+    const { currentGame } = get();
+    if (!currentGame) return;
+    const next = Math.max(0, Math.min(999, currentGame.gameClockSeconds + delta));
+    set({ currentGame: { ...currentGame, gameClockSeconds: next, updatedAt: Date.now() } });
+  },
+
+  useHomeTimeout: () => {
+    const { currentGame } = get();
+    if (!currentGame || currentGame.homeTimeoutsLeft <= 0) return;
     set({
       currentGame: {
         ...currentGame,
-        timeoutsLeft: currentGame.timeoutsLeft - 1,
+        homeTimeoutsLeft: currentGame.homeTimeoutsLeft - 1,
         updatedAt: Date.now(),
       },
     });
   },
 
-  // ──────────────────────────────────────────────
-  // プレイ記録
-  // ──────────────────────────────────────────────
+  useOpponentTimeout: () => {
+    const { currentGame } = get();
+    if (!currentGame || currentGame.opponentTimeoutsLeft <= 0) return;
+    set({
+      currentGame: {
+        ...currentGame,
+        opponentTimeoutsLeft: currentGame.opponentTimeoutsLeft - 1,
+        updatedAt: Date.now(),
+      },
+    });
+  },
+
   addPlay: (playerId, actionType) => {
     const { currentGame } = get();
     if (!currentGame) return;
@@ -191,6 +237,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       playerId,
       actionType,
       quarter: currentGame.currentQuarter,
+      gameClockSeconds: currentGame.gameClockSeconds,
       timestamp: Date.now(),
     };
 
